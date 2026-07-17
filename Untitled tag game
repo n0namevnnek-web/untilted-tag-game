@@ -40,17 +40,20 @@ end
 -- 👇 YOUR MAIN SCRIPT CODE STARTS HERE 👇
 -------------------------------------------------------------------------------
 -- ============================================
--- SCRIPT: NNVN HUB - TAG SYSTEM INTEGRATED
+-- SCRIPT: NNVN HUB - HITBOX + SPEED
 -- AUTHOR: N0NAMEVNNO1
--- VERSION: 2.0
+-- VERSION: 2.0 - Rayfield UI
 -- ============================================
 
 -- ===== LOAD RAYFIELD LIBRARY =====
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- ===== GET TAG SYSTEM =====
-local ReplicatedFirst = game:GetService("ReplicatedFirst")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+-- ===== CONFIGURATION =====
+local CONFIG = {
+    HitboxSize = Vector3.new(15, 15, 15),
+}
+
+-- ===== GLOBAL VARIABLES =====
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -61,35 +64,13 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local rootPart = character:WaitForChild("HumanoidRootPart")
 
--- Load Utils and Tag Events
-local Utils = require(ReplicatedFirst.Utils)
-local TagPlayerEvent = Utils.GetEvent("TagPlayer")
-local TagAgentEvent = Utils.GetEvent("TagAgent")
-local TagHitmarkerEvent = Utils.GetEvent("TagHitmarker")
-local TagSwingEvent = Utils.GetEvent("TagSwing")
-local ForceTagEvent = Utils.GetEvent("ForcePlayerTag")
-
--- ===== CONFIGURATION =====
-local CONFIG = {
-    HitboxSize = Vector3.new(15, 15, 15),
-    AutoAttackRange = 10,
-    AutoAttackCooldown = 0.3,
-    TagDuration = 3,
-}
-
--- ===== STATE =====
-local state = {
-    isExpanded = false,
-    isKillAuraActive = false,
-    isSpeedActive = false,
-    isInfiniteJumpActive = false,
-    isTagVisualsActive = false,
-    auraVisuals = {},
-    attackCooldown = 0,
-}
-
 local normalSpeed = 16
 local boostedSpeed = normalSpeed * 6
+
+local state = {
+    isExpanded = false,
+    isSpeedActive = false,
+}
 
 -- ===== CREATE RAYFIELD UI =====
 local Window = Rayfield:CreateWindow({
@@ -120,8 +101,6 @@ local Window = Rayfield:CreateWindow({
 
 -- ===== CREATE TABS =====
 local MainTab = Window:CreateTab("Main", 4483362458)
-local CombatTab = Window:CreateTab("Combat", 4483362458)
-local VisualTab = Window:CreateTab("Visual", 4483362458)
 local SettingsTab = Window:CreateTab("Settings", 4483362458)
 
 -- ===== MAIN TAB =====
@@ -176,187 +155,23 @@ MainTab:CreateToggle({
     end
 })
 
-MainTab:CreateToggle({
-    Name = "Infinite Jump",
-    CurrentValue = false,
-    Flag = "JumpToggle",
-    Callback = function(Value)
-        state.isInfiniteJumpActive = Value
-        
-        Rayfield:Notify({
-            Title = "NNVN HUB",
-            Content = Value and "Infinite Jump Enabled" or "Infinite Jump Disabled",
-            Duration = 2,
-            Image = 4483362458,
-        })
-    end
-})
-
--- ===== COMBAT TAB =====
-local CombatSection = CombatTab:CreateSection("Kill Aura Zone")
-
-CombatTab:CreateToggle({
-    Name = "Kill Aura Zone",
-    CurrentValue = false,
-    Flag = "KillAuraToggle",
-    Callback = function(Value)
-        state.isKillAuraActive = Value
-        if Value then
-            createKillAuraVisual()
-        else
-            clearKillAuraVisual()
-        end
-        
-        Rayfield:Notify({
-            Title = "NNVN HUB",
-            Content = Value and "Kill Aura Zone Enabled" or "Kill Aura Zone Disabled",
-            Duration = 2,
-            Image = 4483362458,
-        })
-    end
-})
-
-CombatTab:CreateSlider({
-    Name = "Zone Radius",
-    Range = {5, 30},
-    Increment = 1,
-    Suffix = "Studs",
-    CurrentValue = 10,
-    Flag = "ZoneRadius",
-    Callback = function(Value)
-        CONFIG.AutoAttackRange = Value
-        if state.isKillAuraActive then
-            clearKillAuraVisual()
-            createKillAuraVisual()
-        end
-    end
-})
-
-CombatTab:CreateSlider({
-    Name = "Attack Speed",
-    Range = {0.1, 1},
-    Increment = 0.05,
-    Suffix = "s",
-    CurrentValue = 0.3,
-    Flag = "AttackSpeed",
-    Callback = function(Value)
-        CONFIG.AutoAttackCooldown = Value
-    end
-})
-
-CombatTab:CreateSlider({
-    Name = "Tag Duration",
-    Range = {1, 10},
-    Increment = 0.5,
-    Suffix = "s",
-    CurrentValue = 3,
-    Flag = "TagDuration",
-    Callback = function(Value)
-        CONFIG.TagDuration = Value
-    end
-})
-
-CombatTab:CreateToggle({
-    Name = "Show Tag Visuals",
-    CurrentValue = false,
-    Flag = "TagVisualsToggle",
-    Callback = function(Value)
-        state.isTagVisualsActive = Value
-    end
-})
-
--- ===== VISUAL TAB =====
-local VisualSection = VisualTab:CreateSection("Aura Settings")
-
-VisualTab:CreateToggle({
-    Name = "Aura (Tag)",
-    CurrentValue = false,
-    Flag = "AuraToggle",
-    Callback = function(Value)
-        state.isAuraActive = Value
-        if Value then
-            createAura()
-        else
-            clearAura()
-        end
-        
-        Rayfield:Notify({
-            Title = "NNVN HUB",
-            Content = Value and "Aura Enabled" or "Aura Disabled",
-            Duration = 2,
-            Image = 4483362458,
-        })
-    end
-})
-
-VisualTab:CreateSlider({
-    Name = "Aura Radius",
-    Range = {5, 25},
-    Increment = 1,
-    Suffix = "Studs",
-    CurrentValue = 12,
-    Flag = "AuraRadius",
-    Callback = function(Value)
-        CONFIG.AuraRadius = Value
-        if state.isAuraActive then
-            clearAura()
-            createAura()
-        end
-    end
-})
-
-VisualTab:CreateSlider({
-    Name = "Aura Speed",
-    Range = {0.5, 5},
-    Increment = 0.1,
-    Suffix = "x",
-    CurrentValue = 2,
-    Flag = "AuraSpeed",
-    Callback = function(Value)
-        CONFIG.AuraSpeed = Value
-        if state.isAuraActive then
-            clearAura()
-            createAura()
-        end
-    end
-})
-
-VisualTab:CreateColorPicker({
-    Name = "Aura Color",
-    Color = Color3.fromRGB(255, 0, 0),
-    Flag = "AuraColor",
-    Callback = function(Value)
-        CONFIG.AuraColor = Value
-        if state.isAuraActive then
-            clearAura()
-            createAura()
-        end
-    end
-})
-
 -- ===== SETTINGS TAB =====
 local SettingsSection = SettingsTab:CreateSection("Settings")
 
 SettingsTab:CreateButton({
-    Name = "Reset All Settings",
+    Name = "Reset Settings",
     Callback = function()
         Rayfield:SetToggle("HitboxToggle", false)
         Rayfield:SetToggle("SpeedToggle", false)
-        Rayfield:SetToggle("JumpToggle", false)
-        Rayfield:SetToggle("KillAuraToggle", false)
-        Rayfield:SetToggle("AuraToggle", false)
-        Rayfield:SetToggle("TagVisualsToggle", false)
         
         state.isExpanded = false
-        state.isKillAuraActive = false
-        state.isAuraActive = false
         state.isSpeedActive = false
-        state.isInfiniteJumpActive = false
-        state.isTagVisualsActive = false
+        CONFIG.HitboxSize = Vector3.new(15, 15, 15)
         
         humanoid.WalkSpeed = normalSpeed
-        clearKillAuraVisual()
-        clearAura()
+        
+        Rayfield:SetSlider("HitboxSize", 15)
+        expandHitboxes()
         
         Rayfield:Notify({
             Title = "NNVN HUB",
@@ -368,49 +183,11 @@ SettingsTab:CreateButton({
 })
 
 SettingsTab:CreateButton({
-    Name = "Find Tag Remote",
-    Callback = function()
-        local found = {}
-        
-        -- Check if Tag events exist
-        local events = {
-            TagPlayer = TagPlayerEvent,
-            TagAgent = TagAgentEvent,
-            TagHitmarker = TagHitmarkerEvent,
-            TagSwing = TagSwingEvent,
-            ForcePlayerTag = ForceTagEvent,
-        }
-        
-        for name, event in pairs(events) do
-            if event then
-                table.insert(found, name)
-            end
-        end
-        
-        if #found > 0 then
-            Rayfield:Notify({
-                Title = "NNVN HUB",
-                Content = "Found: " .. table.concat(found, ", "),
-                Duration = 4,
-                Image = 4483362458,
-            })
-        else
-            Rayfield:Notify({
-                Title = "NNVN HUB",
-                Content = "No Tag events found",
-                Duration = 4,
-                Image = 4483362458,
-            })
-        end
-    end
-})
-
-SettingsTab:CreateButton({
     Name = "Information",
     Callback = function()
         Rayfield:Notify({
             Title = "NNVN HUB",
-            Content = "By N0NAMEVNNO1\nVersion 2.0\nTag System Integrated",
+            Content = "By N0NAMEVNNO1\nVersion 2.0\nHitbox Expander + Speed Boost",
             Duration = 3,
             Image = 4483362458,
         })
@@ -419,7 +196,6 @@ SettingsTab:CreateButton({
 
 -- ===== CORE FUNCTIONS =====
 
--- 1. HITBOX EXPANDER
 function expandHitboxes()
     for _, target in pairs(Players:GetPlayers()) do
         if target ~= player and target.Character then
@@ -446,282 +222,15 @@ function expandHitboxes()
     end
 end
 
--- 2. AURA
-function createAura()
-    clearAura()
-    
-    if not state.isAuraActive then return end
-    
-    for i = 1, 20 do
-        local angle = (i / 20) * math.pi * 2
-        local radius = CONFIG.AuraRadius
-        
-        local part = Instance.new("Part")
-        part.Size = Vector3.new(0.5, 0.5, 0.5)
-        part.Shape = Enum.PartType.Ball
-        part.BrickColor = BrickColor.new(CONFIG.AuraColor)
-        part.Material = Enum.Material.Neon
-        part.Anchored = true
-        part.CanCollide = false
-        part.Transparency = 0.3
-        
-        local trail = Instance.new("Trail")
-        trail.Lifetime = 0.5
-        trail.MinLength = 0.5
-        trail.Color = ColorSequence.new(CONFIG.AuraColor)
-        trail.Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(1, 1)})
-        trail.Parent = part
-        
-        part.Parent = character
-        state.auraObjects[#state.auraObjects + 1] = part
-        
-        RunService.Heartbeat:Connect(function()
-            if state.isAuraActive and character and character.Parent then
-                local pos = rootPart.Position + Vector3.new(
-                    math.cos(angle + tick() * CONFIG.AuraSpeed) * radius,
-                    math.sin(tick() * 0.5 + i) * 1.5 + 2,
-                    math.sin(angle + tick() * CONFIG.AuraSpeed) * radius
-                )
-                part.Position = pos
-            end
-        end)
-    end
-    
-    local ring = Instance.new("Part")
-    ring.Size = Vector3.new(CONFIG.AuraRadius * 2, 0.2, CONFIG.AuraRadius * 2)
-    ring.Shape = Enum.PartType.Cylinder
-    ring.BrickColor = BrickColor.new(CONFIG.AuraColor)
-    ring.Material = Enum.Material.Neon
-    ring.Anchored = true
-    ring.CanCollide = false
-    ring.Transparency = 0.6
-    ring.Parent = character
-    state.auraObjects[#state.auraObjects + 1] = ring
-    
-    RunService.Heartbeat:Connect(function()
-        if state.isAuraActive and character and character.Parent then
-            ring.Position = rootPart.Position + Vector3.new(0, 0.1, 0)
-            ring.Size = Vector3.new(
-                CONFIG.AuraRadius * 2 + math.sin(tick() * 2) * 0.5,
-                0.2,
-                CONFIG.AuraRadius * 2 + math.sin(tick() * 2) * 0.5
-            )
-        end
-    end)
-end
-
-function clearAura()
-    for _, obj in pairs(state.auraObjects) do
-        if obj and obj.Parent then
-            obj:Destroy()
-        end
-    end
-    state.auraObjects = {}
-end
-
--- 3. KILL AURA VISUAL
-function createKillAuraVisual()
-    clearKillAuraVisual()
-    
-    local radius = CONFIG.AutoAttackRange
-    
-    local ring = Instance.new("Part")
-    ring.Size = Vector3.new(radius * 2, 0.2, radius * 2)
-    ring.Shape = Enum.PartType.Cylinder
-    ring.BrickColor = BrickColor.new(Color3.new(1, 0, 0))
-    ring.Material = Enum.Material.Neon
-    ring.Anchored = true
-    ring.CanCollide = false
-    ring.Transparency = 0.7
-    ring.Parent = character
-    state.auraVisuals[#state.auraVisuals + 1] = ring
-    
-    local innerRing = Instance.new("Part")
-    innerRing.Size = Vector3.new(radius * 1.5, 0.2, radius * 1.5)
-    innerRing.Shape = Enum.PartType.Cylinder
-    innerRing.BrickColor = BrickColor.new(Color3.new(1, 0.3, 0))
-    innerRing.Material = Enum.Material.Neon
-    innerRing.Anchored = true
-    innerRing.CanCollide = false
-    innerRing.Transparency = 0.5
-    innerRing.Parent = character
-    state.auraVisuals[#state.auraVisuals + 1] = innerRing
-    
-    -- Floating particles
-    for i = 1, 12 do
-        local angle = (i / 12) * math.pi * 2
-        local part = Instance.new("Part")
-        part.Size = Vector3.new(0.3, 0.3, 0.3)
-        part.Shape = Enum.PartType.Ball
-        part.BrickColor = BrickColor.new(Color3.new(1, 0, 0))
-        part.Material = Enum.Material.Neon
-        part.Anchored = true
-        part.CanCollide = false
-        part.Transparency = 0.3
-        part.Parent = character
-        state.auraVisuals[#state.auraVisuals + 1] = part
-        
-        RunService.Heartbeat:Connect(function()
-            if state.isKillAuraActive and character and character.Parent then
-                local pos = rootPart.Position + Vector3.new(
-                    math.cos(angle + tick() * 1.5) * radius,
-                    math.sin(tick() * 2 + i) * 1.5 + 2,
-                    math.sin(angle + tick() * 1.5) * radius
-                )
-                part.Position = pos
-            end
-        end)
-    end
-    
-    RunService.Heartbeat:Connect(function()
-        if state.isKillAuraActive and character and character.Parent then
-            local pos = rootPart.Position + Vector3.new(0, 0.1, 0)
-            ring.Position = pos
-            innerRing.Position = pos + Vector3.new(0, 0.2, 0)
-            
-            local pulse = 1 + math.sin(tick() * 3) * 0.05
-            ring.Size = Vector3.new(radius * 2 * pulse, 0.2, radius * 2 * pulse)
-            innerRing.Size = Vector3.new(radius * 1.5 * pulse, 0.2, radius * 1.5 * pulse)
-        end
-    end)
-end
-
-function clearKillAuraVisual()
-    for _, obj in pairs(state.auraVisuals) do
-        if obj and obj.Parent then
-            obj:Destroy()
-        end
-    end
-    state.auraVisuals = {}
-end
-
--- 4. KILL AURA ZONE - TAG TARGET
-function killAuraZone()
-    if not state.isKillAuraActive then return end
-    
-    for _, target in pairs(Players:GetPlayers()) do
-        if target ~= player and target.Character then
-            local targetRoot = target.Character:FindFirstChild("HumanoidRootPart")
-            local targetHum = target.Character:FindFirstChild("Humanoid")
-            
-            if targetRoot and targetHum and targetHum.Health > 0 then
-                local dist = (rootPart.Position - targetRoot.Position).Magnitude
-                
-                if dist < CONFIG.AutoAttackRange then
-                    tagTarget(target.Character)
-                end
-            end
-        end
-    end
-end
-
--- 5. TAG TARGET
-function tagTarget(targetChar)
-    if not targetChar then return end
-    
-    local targetPlayer = Players:GetPlayerFromCharacter(targetChar)
-    local rotation = CFrame.new(rootPart.Position, targetChar.HumanoidRootPart.Position)
-    local x, y, z = rotation:ToEulerAnglesYXZ()
-    
-    if targetPlayer then
-        -- Tag Player
-        local bufferData = buffer.create(7)
-        buffer.writeu8(bufferData, 0, 1)
-        buffer.writeu16(bufferData, 1, math.floor((x + math.pi) / 6.283185307179586 * 65535 + 0.5))
-        buffer.writeu16(bufferData, 3, math.floor((y + math.pi) / 6.283185307179586 * 65535 + 0.5))
-        buffer.writeu16(bufferData, 5, math.floor((z + math.pi) / 6.283185307179586 * 65535 + 0.5))
-        
-        local success = TagPlayerEvent:InvokeServer(bufferData)
-        
-        if success and state.isTagVisualsActive then
-            TagHitmarkerEvent:Fire(targetChar, false, 0)
-            TagSwingEvent:Fire()
-            createTagVisual(targetChar)
-        end
-    else
-        -- Tag Agent/Enemy
-        local bufferData = buffer.create(6)
-        buffer.writeu16(bufferData, 0, math.floor((x + math.pi) / 6.283185307179586 * 65535 + 0.5))
-        buffer.writeu16(bufferData, 2, math.floor((y + math.pi) / 6.283185307179586 * 65535 + 0.5))
-        buffer.writeu16(bufferData, 4, math.floor((z + math.pi) / 6.283185307179586 * 65535 + 0.5))
-        
-        local success = TagAgentEvent:InvokeServer(targetChar, bufferData)
-        
-        if success and state.isTagVisualsActive then
-            TagHitmarkerEvent:Fire(targetChar, false, 0)
-            TagSwingEvent:Fire()
-            createTagVisual(targetChar)
-        end
-    end
-end
-
--- 6. TAG VISUAL EFFECT
-function createTagVisual(targetChar)
-    if not targetChar then return end
-    
-    local tagPart = Instance.new("Part")
-    tagPart.Size = Vector3.new(3, 3, 3)
-    tagPart.Shape = Enum.PartType.Ball
-    tagPart.BrickColor = BrickColor.new(Color3.new(1, 0.8, 0))
-    tagPart.Material = Enum.Material.Neon
-    tagPart.Anchored = true
-    tagPart.CanCollide = false
-    tagPart.Transparency = 0.4
-    tagPart.Position = targetChar.HumanoidRootPart.Position + Vector3.new(0, 3, 0)
-    tagPart.Parent = Workspace
-    
-    local tagText = Instance.new("BillboardGui")
-    tagText.Name = "TagIndicator"
-    tagText.Size = UDim2.new(0, 100, 0, 30)
-    tagText.Adornee = targetChar.HumanoidRootPart
-    tagText.StudsOffset = Vector3.new(0, 3, 0)
-    tagText.Parent = targetChar
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.Text = "TAGGED!"
-    label.TextColor3 = Color3.new(1, 0.8, 0)
-    label.TextScaled = true
-    label.Font = Enum.Font.GothamBold
-    label.Parent = tagText
-    
-    game:GetService("Debris"):AddItem(tagPart, CONFIG.TagDuration or 3)
-    game:GetService("Debris"):AddItem(tagText, CONFIG.TagDuration or 3)
-end
-
 -- ===== EVENT HANDLERS =====
 
 RunService.RenderStepped:Connect(expandHitboxes)
-
-RunService.Heartbeat:Connect(function()
-    if state.isKillAuraActive then
-        if tick() - state.attackCooldown > CONFIG.AutoAttackCooldown then
-            state.attackCooldown = tick()
-            killAuraZone()
-        end
-    end
-end)
-
-UserInputService.JumpRequest:Connect(function()
-    if state.isInfiniteJumpActive then
-        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-    end
-end)
 
 player.CharacterAdded:Connect(function(newChar)
     character = newChar
     humanoid = character:WaitForChild("Humanoid")
     rootPart = character:WaitForChild("HumanoidRootPart")
     
-    if state.isAuraActive then
-        clearAura()
-        createAura()
-    end
-    if state.isKillAuraActive then
-        clearKillAuraVisual()
-        createKillAuraVisual()
-    end
     if state.isSpeedActive then
         humanoid.WalkSpeed = boostedSpeed
     end
@@ -730,8 +239,8 @@ end)
 -- ===== STARTUP NOTIFICATION =====
 Rayfield:Notify({
     Title = "NNVN HUB",
-    Content = "Loaded successfully - Tag System Integrated",
-    Duration = 3,
+    Content = "Loaded successfully - Hitbox + Speed",
+    Duration = 2,
     Image = 4483362458,
 })
 print(ProtectionConfig.HubName .. " Loaded Successfully!")
