@@ -23,7 +23,7 @@ local Config = {
     Secret          = "2107", -- This makes the script ONLY run from the key script. Even if they copy the original obfuscated script to bypass the key, they won't be able to!
     
     -- [3] Scripts & Links
-    MainScriptURL   = "https://raw.githubusercontent.com/n0namevnnek-web/Hide-from-the-villan-script/refs/heads/main/Hide%20From%20the%20Villain", -- The raw URL of your main script
+    MainScriptURL   = "https://raw.githubusercontent.com/n0namevnnek-web/untilted-tag-game/refs/heads/main/Untitled%20tag%20game", -- The raw URL of your main script
     
     -- [4] Social Media Settings (Set to true to show, false to hide)
     ShowDiscord     = true,
